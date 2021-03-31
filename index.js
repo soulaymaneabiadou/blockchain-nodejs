@@ -1,11 +1,15 @@
 const express = require('express');
 const axios = require('axios');
 const Blockchain = require('./blockchain');
+const TransactionPool = require('./wallet/transaction-pool');
+const Wallet = require('./wallet');
 const PubSub = require('./app/pubsub');
 
 const app = express();
 const blockchain = new Blockchain();
-const pubsub = new PubSub({ blockchain });
+const transactionPool = new TransactionPool();
+const wallet = new Wallet();
+const pubsub = new PubSub({ blockchain, transactionPool });
 
 const DEFAULT_PORT = 5000;
 const ROOT_NODE_ADDRESS = `http://localhost:${DEFAULT_PORT}`;
@@ -25,14 +29,47 @@ app.post('/api/mine', (req, res, next) => {
   res.status(201).redirect('/api/blocks');
 });
 
-const syncChains = async () => {
-  try {
-    const res = await axios.get(`${ROOT_NODE_ADDRESS}/api/blocks`);
+app.post('/api/transact', (req, res, next) => {
+  const { recipient, amount } = req.body;
+  let transaction = transactionPool.existingTransaction({
+    inputAddress: wallet.publicKey
+  });
 
-    const rootChain = res.data;
+  try {
+    if (transaction) {
+      transaction.update({ senderWallet: wallet, recipient, amount });
+    } else {
+      transaction = wallet.createTransaction({ amount, recipient });
+    }
+  } catch (error) {
+    return res.status(400).json({ type: 'error', message: error.message });
+  }
+
+  transactionPool.setTransaction(transaction);
+
+  pubsub.broadcastTransaction(transaction);
+
+  res.status(201).json({ type: 'success', transaction });
+});
+
+app.get('/api/transaction-pool-map', (req, res, next) => {
+  res.status(200).json(transactionPool.transactionMap);
+});
+
+const syncWithRootState = async () => {
+  try {
+    const resChain = await axios.get(`${ROOT_NODE_ADDRESS}/api/blocks`);
+    const resPoolMap = await axios.get(
+      `${ROOT_NODE_ADDRESS}/api/transaction-pool-map`
+    );
+
+    const rootChain = resChain.data;
+    const rootPoolMap = resPoolMap.data;
 
     console.log('Replace chain on a sync with', rootChain);
     blockchain.replaceChain(rootChain);
+    console.log('Replace trnsaction pool map on a sync with', rootPoolMap);
+    transactionPool.setMap(rootPoolMap);
   } catch (error) {
     console.log(error);
   }
@@ -50,6 +87,6 @@ app.listen(PORT, async () => {
   console.log(`Server listening on port ${PORT}`);
 
   if (PORT !== DEFAULT_PORT) {
-    await syncChains();
+    await syncWithRootState();
   }
 });
