@@ -24,7 +24,7 @@ const ROOT_NODE_ADDRESS = `http://localhost:${DEFAULT_PORT}`;
 app.use(express.json());
 
 app.get('/api/blocks', (req, res, next) => {
-  res.status(200).json(blockchain.chain);
+  res.status(200).json(blockchain.chain.slice().reverse());
 });
 
 app.post('/api/mine', (req, res, next) => {
