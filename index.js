@@ -1,5 +1,6 @@
 const express = require('express');
 const axios = require('axios');
+const cors = require('cors');
 const Blockchain = require('./blockchain');
 const TransactionPool = require('./wallet/transaction-pool');
 const Wallet = require('./wallet');
@@ -22,6 +23,7 @@ const DEFAULT_PORT = 5000;
 const ROOT_NODE_ADDRESS = `http://localhost:${DEFAULT_PORT}`;
 
 app.use(express.json());
+app.use(cors());
 
 app.get('/api/blocks', (req, res, next) => {
   res.status(200).json(blockchain.chain.slice().reverse());
@@ -83,6 +85,20 @@ app.get('/api/wallet-info', (req, res, next) => {
       address
     })
   });
+});
+
+app.get('/api/addresses', (req, res, next) => {
+  const addressesMap = {};
+
+  for (const block of blockchain.chain) {
+    for (const transaction of block.data) {
+      const recipients = Object.keys(transaction.outputMap);
+
+      recipients.forEach((recipient) => (addressesMap[recipient] = recipient));
+    }
+  }
+
+  res.status(200).json(Object.keys(addressesMap));
 });
 
 const syncWithRootState = async () => {
