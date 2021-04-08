@@ -1,9 +1,9 @@
 const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
-const Blockchain = require('./blockchain');
-const TransactionPool = require('./wallet/transaction-pool');
-const Wallet = require('./wallet');
+const Blockchain = require('./app/blockchain');
+const TransactionPool = require('./app/wallet/transaction-pool');
+const Wallet = require('./app/wallet');
 const PubSub = require('./app/pubsub');
 const TransactionMiner = require('./app/transaction-miner');
 

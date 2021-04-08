@@ -1,6 +1,6 @@
 const { v4: uuidv4 } = require('uuid');
-const { verifySignature } = require('../utils');
-const { REWARD_INPUT, MINING_REWARD } = require('../config');
+const { verifySignature } = require('../../utils');
+const { REWARD_INPUT, MINING_REWARD } = require('../../config');
 
 class Transaction {
   constructor({ senderWallet, recipient, amount, outputMap, input }) {
