@@ -1,5 +1,5 @@
-const Wallet = require('./index');
-const Transaction = require('./transaction');
+const Wallet = require('../wallet');
+const Transaction = require('./index');
 const { verifySignature } = require('../../utils');
 const { REWARD_INPUT, MINING_REWARD } = require('../../config');
 

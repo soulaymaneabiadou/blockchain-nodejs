@@ -2,10 +2,10 @@ const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
 const Blockchain = require('./app/blockchain');
-const TransactionPool = require('./app/wallet/transaction-pool');
+const TransactionPool = require('./app/transactionPool');
 const Wallet = require('./app/wallet');
 const PubSub = require('./app/pubsub');
-const TransactionMiner = require('./app/transaction-miner');
+const TransactionMiner = require('./app/transactionMiner');
 
 const app = express();
 const blockchain = new Blockchain();
@@ -29,16 +29,7 @@ app.get('/api/blocks', (req, res, next) => {
   res.status(200).json(blockchain.chain.slice().reverse());
 });
 
-app.post('/api/mine', (req, res, next) => {
-  const { data } = req.body;
-  blockchain.addBlock({ data });
-
-  pubsub.broadcastChain();
-
-  res.status(201).redirect('/api/blocks');
-});
-
-app.post('/api/transact', (req, res, next) => {
+app.post('/api/transactions', (req, res, next) => {
   const { recipient, amount } = req.body;
   let transaction = transactionPool.existingTransaction({
     inputAddress: wallet.publicKey
@@ -55,27 +46,27 @@ app.post('/api/transact', (req, res, next) => {
       });
     }
   } catch (error) {
-    return res.status(400).json({ type: 'error', message: error.message });
+    return res.status(400).json({ message: error.message });
   }
 
   transactionPool.setTransaction(transaction);
 
   pubsub.broadcastTransaction(transaction);
 
-  res.status(201).json({ type: 'success', transaction });
+  res.status(201).json({ transaction });
 });
 
-app.get('/api/transaction-pool-map', (req, res, next) => {
+app.get('/api/transactions', (req, res, next) => {
   res.status(200).json(transactionPool.transactionMap);
 });
 
-app.get('/api/mine-transactions', (req, res, next) => {
+app.post('/api/transactions/mine', (req, res, next) => {
   transactionMiner.mineTransactions();
 
   res.redirect('/api/blocks');
 });
 
-app.get('/api/wallet-info', (req, res, next) => {
+app.get('/api/wallet', (req, res, next) => {
   const address = wallet.publicKey;
 
   res.json({
@@ -94,7 +85,11 @@ app.get('/api/addresses', (req, res, next) => {
     for (const transaction of block.data) {
       const recipients = Object.keys(transaction.outputMap);
 
-      recipients.forEach((recipient) => (addressesMap[recipient] = recipient));
+      recipients.forEach(
+        (recipient) =>
+          recipient !== wallet.publicKey &&
+          (addressesMap[recipient] = recipient)
+      );
     }
   }
 

@@ -1,7 +1,7 @@
 const Blockchain = require('./index');
-const Block = require('./block');
+const Block = require('../block');
 const Wallet = require('../wallet');
-const Transaction = require('../wallet/transaction');
+const Transaction = require('../transaction');
 const { cryptoHash } = require('../../utils');
 
 describe('Blockchain', () => {
